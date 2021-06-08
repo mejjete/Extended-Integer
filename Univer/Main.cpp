@@ -5,10 +5,12 @@ using namespace std;
 
 int main()
 {
-	int128_t cl = 20;
+	cout.setf(ios::boolalpha);
+
+	int128_t cl = 5;
 	int128_t gh = 10;
 
-	cout << cl - gh << endl;
+	cout << 5 + cl << endl;
 
 	return 0;
 };

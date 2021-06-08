@@ -44,10 +44,13 @@
 #define ISIGNED			char 
 #define IUNSIGNED		unsigned char
 
+
 //ASM function declaration
 extern "C" void addInteger(void* fnum, void* snum, void* result, size_t size);
 extern "C" void subInteger(void* fnum, void* snum, void* result, size_t size);
 
+template <typename T>
+void print_binary(const T* num);
 
 //forward declaration
 template <typename T, size_t size>
@@ -132,6 +135,13 @@ class __basic_int
 		__basic_int& operator++();
 		__basic_int& operator++(int);
 
+		template <typename V>
+		operator V() const;
+
+
+		/*template <typename V>
+		self_type operator+(const V& lhs) { std::cout << "operator+\n"; return *this; };*/
+
 		friend bool operator==	<T, size>(const self_type& op1, const self_type& op2);
 		friend bool operator!=	<T, size>(const self_type& op1, const self_type& op2);
 
@@ -175,7 +185,8 @@ __basic_int<T, size>::__basic_int(const V& lhs)
 	static_assert(std::is_integral_v<std::remove_all_extents_t<V>>,
 		"__basic_int: constructor template parameter must be an integral type");
 
-	std::memset(static_cast<void*>(&m_data), 0, size / 8);
+	int sign = lhs < 0 ? -1 : 0;
+	std::memset(static_cast<void*>(&m_data), sign, size / 8);
 	copy_from(lhs);
 };
 
@@ -293,6 +304,18 @@ bool operator!= <T, size>(const __basic_int<T, size>& op1, const __basic_int<T, 
 
 template <typename T, size_t size>
 template <typename V>
+__basic_int<T, size>::operator V() const
+{
+	static_assert(std::is_integral_v<std::remove_all_extents_t<V>>,
+		"__basic_int: operator overloading template parameter must be an integral type");
+	V result;
+	std::memcpy(&result, static_cast<const void*>(&m_data), sizeof(V));
+	return result;
+}
+
+
+template <typename T, size_t size>
+template <typename V>
 inline void __basic_int<T, size>::copy_from(const V& lhs)
 {
 	size_t sz = sizeof(lhs) > size ? size : sizeof(lhs);
@@ -320,6 +343,41 @@ void __basic_int<T, size>::print_binary() const
 };
 
 
+/*		Helper friend functions		*/
+template <typename T, typename V, size_t size>
+inline V operator+(const V& op1, const __basic_int<T, size>& op2)
+{
+	static_assert(std::is_integral_v<std::remove_all_extents_t<V>>,
+		"__basic_int: operator overloading template parameter must be an integral type");
+	return V(__basic_int<T, size>(op1) + op2);
+}
+
+template <typename T, typename V, size_t size>
+inline V operator-(const V& op1, const __basic_int<T, size>& op2)
+{
+	static_assert(std::is_integral_v<std::remove_all_extents_t<V>>,
+		"__basic_int: operator overloading template parameter must be an integral type");
+	return V(__basic_int<T, size>(op1) - op2);
+}
+
+
+template <typename T, typename V, size_t size>
+inline V operator*(const V& op1, const __basic_int<T, size>& op2)
+{
+	static_assert(std::is_integral_v<std::remove_all_extents_t<V>>,
+		"__basic_int: operator overloading template parameter must be an integral type");
+	return V(__basic_int<T, size>(op1) * op2);
+}
+
+template <typename T, typename V, size_t size>
+inline V operator/(const V& op1, const __basic_int<T, size>& op2)
+{
+	static_assert(std::is_integral_v<std::remove_all_extents_t<V>>,
+		"__basic_int: operator overloading template parameter must be an integral type");
+	return V(__basic_int<T, size>(op1) / op2);
+}
+
+
 /*		Experimental feature		*/	
 namespace ext_int
 {
@@ -335,6 +393,25 @@ namespace ext_int
 
 	template <size_t size>
 	struct is_unsigned<__basic_int<IUNSIGNED, size>> : public std::true_type {};
+
+	template <typename T>
+	void print_binary(const T* num)
+	{
+		char* bbyte;
+		for (size_t i = sizeof(T) / 8; i > 0; i--)
+		{
+			bbyte = ((char*)num) + i - 1;
+			for (int j = 8; j > 0; j--)
+			{
+				std::cout << ((*bbyte >> j - 1) & 1);
+				if ((j - 1) % 4 == 0)
+					std::cout << " ";
+			}
+
+			if ((i - 1) % 4 == 0)
+				std::cout << std::endl;
+		};
+	};
 };
 
 #endif
