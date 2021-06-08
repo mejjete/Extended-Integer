@@ -20,11 +20,13 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Main.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source.cpp">
+  </ItemGroup>
+  <ItemGroup>
+    <MASM Include="arithmetics.asm">
       <Filter>Source Files</Filter>
-    </ClCompile>
+    </MASM>
   </ItemGroup>
 </Project>
