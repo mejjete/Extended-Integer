@@ -132,15 +132,22 @@ class __basic_int
 		template <typename V>
 		__basic_int& operator=(const V& lhs);
 
-		__basic_int& operator++();
-		__basic_int& operator++(int);
+		__basic_int& operator++()		{ return *this = operator+(*this, self_type(1)); };
+		__basic_int& operator++(int)	{ return operator++(); };
+
+		__basic_int& operator--()		{ return *this = operator-(*this, self_type(1)); };
+		__basic_int& operator--(int)	{ return operator--(); };
+
+		__basic_int& operator+=(const self_type& op) { return *this = operator+(*this, op); };
+		__basic_int& operator-=(const self_type& op) { return *this = operator-(*this, op); };
+		__basic_int& operator*=(const self_type& op) { return *this = operator*(*this, op); };
+		__basic_int& operator/=(const self_type& op) { return *this = operator/(*this, op); };
+
 
 		template <typename V>
 		operator V() const;
 
-
-		/*template <typename V>
-		self_type operator+(const V& lhs) { std::cout << "operator+\n"; return *this; };*/
+		operator int() const;
 
 		friend bool operator==	<T, size>(const self_type& op1, const self_type& op2);
 		friend bool operator!=	<T, size>(const self_type& op1, const self_type& op2);
@@ -253,9 +260,9 @@ bool operator< <T, size>(const __basic_int<T, size>& op1, const __basic_int<T, s
 		not returned from the function, two scenarios are possible.
 		The first one is when the number op1 is not great that op2, 
 		and the second when op1 == op2. In order to exclude such 
-		drawback what we need is just track the number equality
-		throughout the loop. If each pair of the loop were 
-		equal, than return false, otherwise true.
+		drawback we need nothing but track the number equality
+		throughout the loop. If each pair of number throughout 
+		the loop were equal, return false, otherwise true.
 	*/
 
 	return !is_equal;
@@ -308,8 +315,18 @@ __basic_int<T, size>::operator V() const
 {
 	static_assert(std::is_integral_v<std::remove_all_extents_t<V>>,
 		"__basic_int: operator overloading template parameter must be an integral type");
+	
 	V result;
 	std::memcpy(&result, static_cast<const void*>(&m_data), sizeof(V));
+	return result;
+}
+
+
+template <typename T, size_t size>
+inline __basic_int<T, size>::operator int() const
+{
+	int result;
+	std::memcpy(&result, static_cast<const void*>(&m_data), sizeof(int));
 	return result;
 }
 
@@ -343,41 +360,6 @@ void __basic_int<T, size>::print_binary() const
 };
 
 
-/*		Helper friend functions		*/
-template <typename T, typename V, size_t size>
-inline V operator+(const V& op1, const __basic_int<T, size>& op2)
-{
-	static_assert(std::is_integral_v<std::remove_all_extents_t<V>>,
-		"__basic_int: operator overloading template parameter must be an integral type");
-	return V(__basic_int<T, size>(op1) + op2);
-}
-
-template <typename T, typename V, size_t size>
-inline V operator-(const V& op1, const __basic_int<T, size>& op2)
-{
-	static_assert(std::is_integral_v<std::remove_all_extents_t<V>>,
-		"__basic_int: operator overloading template parameter must be an integral type");
-	return V(__basic_int<T, size>(op1) - op2);
-}
-
-
-template <typename T, typename V, size_t size>
-inline V operator*(const V& op1, const __basic_int<T, size>& op2)
-{
-	static_assert(std::is_integral_v<std::remove_all_extents_t<V>>,
-		"__basic_int: operator overloading template parameter must be an integral type");
-	return V(__basic_int<T, size>(op1) * op2);
-}
-
-template <typename T, typename V, size_t size>
-inline V operator/(const V& op1, const __basic_int<T, size>& op2)
-{
-	static_assert(std::is_integral_v<std::remove_all_extents_t<V>>,
-		"__basic_int: operator overloading template parameter must be an integral type");
-	return V(__basic_int<T, size>(op1) / op2);
-}
-
-
 /*		Experimental feature		*/	
 namespace ext_int
 {
@@ -395,12 +377,12 @@ namespace ext_int
 	struct is_unsigned<__basic_int<IUNSIGNED, size>> : public std::true_type {};
 
 	template <typename T>
-	void print_binary(const T* num)
+	void print_binary(const T& num)
 	{
 		char* bbyte;
-		for (size_t i = sizeof(T) / 8; i > 0; i--)
+		for (size_t i = sizeof(T); i > 0; i--)
 		{
-			bbyte = ((char*)num) + i - 1;
+			bbyte = ((char*)&num) + i - 1;
 			for (int j = 8; j > 0; j--)
 			{
 				std::cout << ((*bbyte >> j - 1) & 1);

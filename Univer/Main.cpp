@@ -8,9 +8,10 @@ int main()
 	cout.setf(ios::boolalpha);
 
 	int128_t cl = 5;
-	int128_t gh = 10;
+	int128_t gh = 20;
 
-	cout << 5 + cl << endl;
+	int val1 = 10;
+	int1024_t val2 = 10;
 
 	return 0;
 };
