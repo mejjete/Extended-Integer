@@ -19,22 +19,19 @@
 
 #if defined __X86_64__
 
-#define INT128_MAX		
+#define INT128_MAX		0
 #define INT128_MIN		0
 #define INT512_MAX		0
 #define INT512_MIN		0
 #define INT1024_MAX		0
 #define INT1024_MIN		0
 
-#define UINT128_MAX		0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+#define UINT128_MAX		0
 #define UINT128_MIN		0
-#define UINT512_MAX		0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF \
-						  FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+#define UINT512_MAX		0
+
 #define UINT512_MIN		0
-#define UINT1024_MAX	0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF \
-						  FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF \
-						  FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF \
-						  FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+#define UINT1024_MAX	0
 #define UINT1024_MIN	0
 
 /*  
@@ -49,8 +46,6 @@
 extern "C" void addInteger(void* fnum, void* snum, void* result, size_t size);
 extern "C" void subInteger(void* fnum, void* snum, void* result, size_t size);
 
-template <typename T>
-void print_binary(const T* num);
 
 //forward declaration
 template <typename T, size_t size>
@@ -143,7 +138,6 @@ class __basic_int
 		__basic_int& operator*=(const self_type& op) { return *this = operator*(*this, op); };
 		__basic_int& operator/=(const self_type& op) { return *this = operator/(*this, op); };
 
-
 		template <typename V>
 		operator V() const;
 
@@ -175,14 +169,14 @@ class __basic_int
 };
 
 //signed integer templates
-using int128_t = __basic_int<ISIGNED, 128>;
-using int512_t = __basic_int<ISIGNED, 512>;
-using int1024_t = __basic_int<ISIGNED, 1024>;
+using int128_t = __basic_int<ISIGNED, 16>;
+using int512_t = __basic_int<ISIGNED, 32>;
+using int1024_t = __basic_int<ISIGNED, 64>;
 
 //unsigned integer templates
-using uint128_t = __basic_int<IUNSIGNED, 128>;
-using uint512_t = __basic_int<IUNSIGNED, 512>;
-using uint1024_t = __basic_int<IUNSIGNED, 1024>;
+using uint128_t = __basic_int<IUNSIGNED, 16>;
+using uint512_t = __basic_int<IUNSIGNED, 32>;
+using uint1024_t = __basic_int<IUNSIGNED, 64>;
 
 
 template <typename T, size_t size>
@@ -193,7 +187,7 @@ __basic_int<T, size>::__basic_int(const V& lhs)
 		"__basic_int: constructor template parameter must be an integral type");
 
 	int sign = lhs < 0 ? -1 : 0;
-	std::memset(static_cast<void*>(&m_data), sign, size / 8);
+	std::memset(static_cast<void*>(&m_data), sign, size);
 	copy_from(lhs);
 };
 
@@ -243,6 +237,16 @@ __basic_int<T, size> operator-<T, size>(const __basic_int<T, size>& op1, const _
 
 
 template <typename T, size_t size>
+__basic_int<T, size> operator*<T, size>(const __basic_int<T, size>& op1, const __basic_int<T, size>& op2)
+{
+	__basic_int<T, size> result = 0;
+	for (__basic_int<T, size> i = 0; i < op2; i++)
+		result += op1;
+	return result;
+};
+
+
+template <typename T, size_t size>
 bool operator< <T, size>(const __basic_int<T, size>& op1, const __basic_int<T, size>& op2)
 {	
 	bool is_equal = true;
@@ -279,14 +283,14 @@ bool operator> <T, size>(const __basic_int<T, size>& op1, const __basic_int<T, s
 template <typename T, size_t size>
 bool operator<= <T, size>(const __basic_int<T, size>& op1, const __basic_int<T, size>& op2)
 {
-	return (operator<(op1, op2) && !operator>(op1, op2));
+	return (operator<(op1, op2) || operator==(op1, op2));
 }
 
 
 template <typename T, size_t size>
 bool operator>= <T, size>(const __basic_int<T, size>& op1, const __basic_int<T, size>& op2)
 {
-	return (operator>(op1, op2) && !operator<(op1, op2));
+	return (operator>(op1, op2) || operator==(op1, op2));
 }
 
 
@@ -344,7 +348,7 @@ template <typename T, size_t size>
 void __basic_int<T, size>::print_binary() const
 {
 	char* bbyte;
-	for (size_t i = size / 8; i > 0; i--)
+	for (size_t i = size; i > 0; i--)
 	{
 		bbyte = ((char*)m_data) + i - 1;
 		for (int j = 8; j > 0; j--)
@@ -394,6 +398,57 @@ namespace ext_int
 				std::cout << std::endl;
 		};
 	};
+
+	void swap(char* ch_1, char* ch_2)
+	{
+		char temp;
+		temp = *ch_1;
+		*ch_1 = *ch_2;
+		*ch_2 = temp;
+	}
+
+	void reverse(char str[], int length)
+	{
+		int start = 0;
+		int end = length - 1;
+		while (start < end)
+		{
+			swap(str + start, str + end);
+			start++;
+			end--;
+		}
+	}
+
+	// Implementation of itoa() 
+	template <typename T>
+	char* itoaw(const T* n, char* str, int base)
+	{
+		T num = *n;
+		int i = 0;
+		bool isNegative = false;
+		if (num == 0)
+		{
+			str[i++] = '0';
+			str[i] = '\0';
+			return str;
+		}
+		if (num < 0 && base == 10)
+		{
+			isNegative = true;
+			num = -num;
+		}
+		while (num != 0)
+		{
+			int rem = num % base;
+			str[i++] = (rem > 9) ? (rem - 10) + 'a' : rem + '0';
+			num = num / base;
+		}
+		if (isNegative)
+			str[i++] = '-';
+		str[i] = '\0';
+		reverse(str, i);
+		return str;
+	}
 };
 
 #endif
