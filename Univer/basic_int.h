@@ -42,6 +42,7 @@
 #define ISIGNED			int8_t
 #define IUNSIGNED		uint8_t
 
+#define CVT_ASCII(T) char((T) | 0x30)
 
 //ASM function declaration
 extern "C" void addInteger(void* fnum, void* snum, void* result, size_t size);
@@ -217,7 +218,6 @@ __basic_int<T, size>& __basic_int<T, size>::operator=(const V& lhs)
 template <typename T, size_t size>
 std::ostream& operator<< <T, size>(std::ostream& os, const __basic_int<T, size>& op1)
 {
-	op1.print_binary();
 	return os;
 }
 
@@ -275,8 +275,11 @@ template <typename T, size_t size>
 __basic_int<T, size> operator%<T, size>(const __basic_int<T, size>& op1, const __basic_int<T, size>& op2)
 {
 	__basic_int<T, size> result = op1;
-	while (result > 0 && result >= op2)
+	while (result >= op2)
+	{
+		std::cout << (int)result << std::endl;
 		result -= op2;
+	}
 	return result;
 };
 
@@ -285,11 +288,30 @@ template <typename T, size_t size>
 bool operator< <T, size>(const __basic_int<T, size>& op1, const __basic_int<T, size>& op2)
 {	
 	bool is_second_great = false;
+	
+	using stype = typename std::conditional_t<std::is_signed_v<T>, ISIGNED, IUNSIGNED>;
+
+	/*
+		Sign bit check allows us to skip
+		unnecessary loop iterations
+		If they are equal - do the bitwise comparison
+	*/
+	stype first = (op1.m_data[size - 1] & 0x80);
+	stype second = (op2.m_data[size - 1] & 0x80);
+
+	if (first != second)
+	{
+		if (first < second)
+			return true;
+		return false;
+	}
+
+	//Bitwise comparison
 	for (size_t i = size; i > 0; i--)
 	{
 		//to avoid sign bit extension
-		uint8_t first = op1.m_data[i - 1];
-		uint8_t second = op2.m_data[i - 1];
+		stype first = op1.m_data[i - 1];
+		stype second = op2.m_data[i - 1];
 
 		if (first > second)
 			return is_second_great;
@@ -308,7 +330,7 @@ bool operator< <T, size>(const __basic_int<T, size>& op1, const __basic_int<T, s
 		the loop were equal, return false, otherwise true.
 	*/
 
-	return false;
+	return is_second_great;
 }
 
 

@@ -6,15 +6,14 @@
 #include "basic_int.h"
 using namespace std;
 
-void module_test();
-
 int main()
 {
 	cout.setf(ios::boolalpha);
-	int128_t val1 = 800;
-	int128_t val2 = 333;
 
-	module_test();
+	int128_t val1 = -4;
+	int128_t val2 = 40;
+
+	cout << (val1 < val2) << endl;
 
 	return 0;
 };
