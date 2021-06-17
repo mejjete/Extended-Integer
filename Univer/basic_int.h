@@ -7,6 +7,7 @@
 #include <iostream>
 #include <type_traits>
 #include <cstring>
+#include <cstdint>
 
 #if defined _M_IX86 || defined _M_X64 ||	\
 	defined __i386__ 
@@ -38,14 +39,19 @@
 	ISIGNED - used as template argument with signed number
 	IUNSIGNED - used as template argument with unsigned number
 */
-#define ISIGNED			char 
-#define IUNSIGNED		unsigned char
+#define ISIGNED			int8_t
+#define IUNSIGNED		uint8_t
 
 
 //ASM function declaration
 extern "C" void addInteger(void* fnum, void* snum, void* result, size_t size);
 extern "C" void subInteger(void* fnum, void* snum, void* result, size_t size);
 
+namespace ext_int
+{
+	template <typename T>
+	void print_binary(const T& num);
+}
 
 //forward declaration
 template <typename T, size_t size>
@@ -69,6 +75,8 @@ __basic_int<T, size> operator*(const __basic_int<T, size>& op1, const __basic_in
 template <typename T, size_t size>
 __basic_int<T, size> operator/(const __basic_int<T, size>& op1, const __basic_int<T, size>& op2);
 
+template <typename T, size_t size>
+__basic_int<T, size> operator%(const __basic_int<T, size>& op1, const __basic_int<T, size>& op2);
 
 
 /*		Boolean operations		*/
@@ -155,6 +163,7 @@ class __basic_int
 		friend self_type operator-	<T, size>(const self_type& op1, const self_type& op2);
 		friend self_type operator*	<T, size>(const self_type& op1, const self_type& op2);
 		friend self_type operator/	<T, size>(const self_type& op1, const self_type& op2);
+		friend self_type operator% <T, size>(const self_type& op1, const self_type& op2);
 
 		friend std::ostream& operator<<	<T, size>(std::ostream& os, const self_type& op1);
 		friend std::istream& operator>>	<T, size>(std::istream& os, const self_type& op1);
@@ -167,6 +176,7 @@ class __basic_int
 
 		T m_data[size];
 };
+
 
 //signed integer templates
 using int128_t = __basic_int<ISIGNED, 16>;
@@ -247,15 +257,44 @@ __basic_int<T, size> operator*<T, size>(const __basic_int<T, size>& op1, const _
 
 
 template <typename T, size_t size>
+__basic_int<T, size> operator/<T, size>(const __basic_int<T, size>& op1, const __basic_int<T, size>& op2)
+{
+	__basic_int<T, size> temp = op1;
+	__basic_int<T, size> result = 0;
+
+	while (temp != 0 && temp >= op2)
+	{
+		temp -= op2;
+		result++;
+	}
+	return result;
+};
+
+
+template <typename T, size_t size>
+__basic_int<T, size> operator%<T, size>(const __basic_int<T, size>& op1, const __basic_int<T, size>& op2)
+{
+	__basic_int<T, size> result = op1;
+	while (result > 0 && result >= op2)
+		result -= op2;
+	return result;
+};
+
+
+template <typename T, size_t size>
 bool operator< <T, size>(const __basic_int<T, size>& op1, const __basic_int<T, size>& op2)
 {	
-	bool is_equal = true;
-	for (size_t i = 0; i < size; i++)
+	bool is_second_great = false;
+	for (size_t i = size; i > 0; i--)
 	{
-		if (op1.m_data[i] > op2.m_data[i])
-			return false;
-		if (op1.m_data[i] != op2.m_data[i])
-			is_equal = false;
+		//to avoid sign bit extension
+		uint8_t first = op1.m_data[i - 1];
+		uint8_t second = op2.m_data[i - 1];
+
+		if (first > second)
+			return is_second_great;
+		if (second > first)
+			is_second_great = true;
 	}
 
 	/* 
@@ -269,7 +308,7 @@ bool operator< <T, size>(const __basic_int<T, size>& op1, const __basic_int<T, s
 		the loop were equal, return false, otherwise true.
 	*/
 
-	return !is_equal;
+	return false;
 }
 
 

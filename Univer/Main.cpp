@@ -1,40 +1,20 @@
 #include <iostream>
 #include <fstream>
 #include <climits>
+#include <cstdlib>
+#include <ctime>
 #include "basic_int.h"
 using namespace std;
+
+void module_test();
 
 int main()
 {
 	cout.setf(ios::boolalpha);
-	int128_t val1 = 5;
-	int128_t val2 = 5;
+	int128_t val1 = 800;
+	int128_t val2 = 333;
 
-	cout << int(val1 * val2) << endl;
-
-#if defined _DEBUG
-	{
-		for (int i = 0; i < 10; i++)
-		{
-			int128_t temp = 5;
-			int128_t ii = i;
-			cout << "I = " << i << endl;
-
-			cout << "operator<: ";
-			cout << (ii < temp) << endl;
-			
-			cout << "operator>: ";
-			cout << (ii > temp) << endl;
-
-			cout << "operator<=: ";
-			cout << (ii <= temp) << endl;
-
-			cout << "operator>=: ";
-			cout << (ii >= temp) << endl;
-			system("pause");
-		}
-	}
-#endif 
+	module_test();
 
 	return 0;
 };
