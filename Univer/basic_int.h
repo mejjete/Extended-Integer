@@ -42,17 +42,13 @@
 #define ISIGNED			int8_t
 #define IUNSIGNED		uint8_t
 
+//convert number to hexademical
+#define CVT_HEX(T) char(((T) <= 9) ? (T) | 0x30 : (((T) | 0x40) - 9))
 #define CVT_ASCII(T) char((T) | 0x30)
 
 //ASM function declaration
 extern "C" void addInteger(void* fnum, void* snum, void* result, size_t size);
 extern "C" void subInteger(void* fnum, void* snum, void* result, size_t size);
-
-namespace ext_int
-{
-	template <typename T>
-	void print_binary(const T& num);
-}
 
 //forward declaration
 template <typename T, size_t size>
@@ -173,8 +169,6 @@ class __basic_int
 		template <typename V>
 		inline void copy_from(const V& rhs);
 
-		void print_binary() const;
-
 		T m_data[size];
 };
 
@@ -218,6 +212,15 @@ __basic_int<T, size>& __basic_int<T, size>::operator=(const V& lhs)
 template <typename T, size_t size>
 std::ostream& operator<< <T, size>(std::ostream& os, const __basic_int<T, size>& op1)
 {
+	std::string number;
+	__basic_int<T, size> result = op1;
+	while (result > 0)
+	{
+		number += CVT_ASCII(unsigned(result % 10));
+		result /= 10;
+	}
+	std::reverse(number.begin(), number.end());
+	os << number;
 	return os;
 }
 
@@ -276,10 +279,7 @@ __basic_int<T, size> operator%<T, size>(const __basic_int<T, size>& op1, const _
 {
 	__basic_int<T, size> result = op1;
 	while (result >= op2)
-	{
-		std::cout << (int)result << std::endl;
 		result -= op2;
-	}
 	return result;
 };
 
@@ -289,7 +289,7 @@ bool operator< <T, size>(const __basic_int<T, size>& op1, const __basic_int<T, s
 {	
 	bool is_second_great = false;
 	
-	using stype = typename std::conditional_t<std::is_signed_v<T>, ISIGNED, IUNSIGNED>;
+	using stype = IUNSIGNED;
 
 	/*
 		Sign bit check allows us to skip
@@ -301,7 +301,7 @@ bool operator< <T, size>(const __basic_int<T, size>& op1, const __basic_int<T, s
 
 	if (first != second)
 	{
-		if (first < second)
+		if (first > second)
 			return true;
 		return false;
 	}
@@ -310,8 +310,8 @@ bool operator< <T, size>(const __basic_int<T, size>& op1, const __basic_int<T, s
 	for (size_t i = size; i > 0; i--)
 	{
 		//to avoid sign bit extension
-		stype first = op1.m_data[i - 1];
-		stype second = op2.m_data[i - 1];
+		first = op1.m_data[i - 1];
+		second = op2.m_data[i - 1];
 
 		if (first > second)
 			return is_second_great;
@@ -388,6 +388,16 @@ __basic_int<T, size>::operator V() const
 
 
 template <typename T, size_t size>
+template <typename V, size_t sz>
+__basic_int<T, size>::operator __basic_int<V, sz>() const
+{
+	/*static_assert(false, "NOT YET IMPLEMENTED");*/
+	std::cerr << "not implemented\n";
+	return __basic_int<V, sz>(0);
+}
+
+
+template <typename T, size_t size>
 inline __basic_int<T, size>::operator int() const
 {
 	int result;
@@ -405,28 +415,8 @@ inline void __basic_int<T, size>::copy_from(const V& lhs)
 }
 
 
-template <typename T, size_t size>
-void __basic_int<T, size>::print_binary() const
-{
-	char* bbyte;
-	for (size_t i = size; i > 0; i--)
-	{
-		bbyte = ((char*)m_data) + i - 1;
-		for (int j = 8; j > 0; j--)
-		{
-			std::cout << ((*bbyte >> j - 1) & 1);
-			if ((j - 1) % 4 == 0)
-				std::cout << " ";
-		}
-
-		if ((i - 1) % 4 == 0)
-			std::cout << std::endl;
-	};
-};
-
-
 /*		Experimental feature		*/	
-namespace ext_int
+namespace eint
 {
 	/*		Extended integer type traits		*/
 	template <typename>
@@ -442,8 +432,11 @@ namespace ext_int
 	struct is_unsigned<__basic_int<IUNSIGNED, size>> : public std::true_type {};
 
 	template <typename T>
-	void print_binary(const T& num)
+	void toBin(const T& num)
 	{
+		static_assert(std::is_integral_v<std::remove_all_extents_t<T>>,
+			"only numbers can be converted into hexademical representation");
+
 		char* bbyte;
 		for (size_t i = sizeof(T); i > 0; i--)
 		{
@@ -460,56 +453,22 @@ namespace ext_int
 		};
 	};
 
-	void swap(char* ch_1, char* ch_2)
-	{
-		char temp;
-		temp = *ch_1;
-		*ch_1 = *ch_2;
-		*ch_2 = temp;
-	}
-
-	void reverse(char str[], int length)
-	{
-		int start = 0;
-		int end = length - 1;
-		while (start < end)
-		{
-			swap(str + start, str + end);
-			start++;
-			end--;
-		}
-	}
-
-	// Implementation of itoa() 
 	template <typename T>
-	char* itoaw(const T* n, char* str, int base)
+	void toHex(const T& num)
 	{
-		T num = *n;
-		int i = 0;
-		bool isNegative = false;
-		if (num == 0)
+		static_assert(std::is_integral_v<std::remove_all_extents_t<T>>,
+			"only numbers can be converted into hexademical representation");
+
+		string result;
+
+		for (int i = sizeof(num); i > 0; i--)
 		{
-			str[i++] = '0';
-			str[i] = '\0';
-			return str;
-		}
-		if (num < 0 && base == 10)
-		{
-			isNegative = true;
-			num = -num;
-		}
-		while (num != 0)
-		{
-			int rem = num % base;
-			str[i++] = (rem > 9) ? (rem - 10) + 'a' : rem + '0';
-			num = num / base;
-		}
-		if (isNegative)
-			str[i++] = '-';
-		str[i] = '\0';
-		reverse(str, i);
-		return str;
-	}
+			unsigned char temp = *(((unsigned char*)&num) + i - 1);
+			result += CVT_HEX(temp >> 4);
+			result += CVT_HEX(temp & 0xF);
+		};
+		std::cout << result << endl;
+	};
 };
 
 #endif
